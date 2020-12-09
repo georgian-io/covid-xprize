@@ -33,6 +33,9 @@ CONTEXT_COLUMNS = ['CountryName',
                    'Population']
 
 WINDOW_SIZE = 7
+MAX_NB_COUNTRIES = 20
+NB_LOOKBACK_DAYS = 21
+NB_TEST_DAYS = 14
 
 # Copied from covid_xprize/examples/predictors/lstm/xprize_predictor.py
 def _prepare_dataframe(data_url: str) -> pd.DataFrame:
@@ -149,10 +152,88 @@ def _fill_missing_values(df):
         df.update(df.groupby('GeoID')[npi_column].ffill().fillna(0))
     return
 
+# Copied from covid_xprize/examples/predictors/lstm/xprize_predictor.py
+def _most_affected_geos(df, nb_geos, min_historical_days):
+    """
+    Returns the list of most affected countries, in terms of confirmed deaths.
+    :param df: the data frame containing the historical data
+    :param nb_geos: the number of geos to return
+    :param min_historical_days: the minimum days of historical data the countries must have
+    :return: a list of country names of size nb_countries if there were enough, and otherwise a list of all the
+    country names that have at least min_look_back_days data points.
+    """
+    # By default use most affected geos with enough history
+    gdf = df.groupby('GeoID')['ConfirmedDeaths'].agg(['max', 'count']).sort_values(by='max', ascending=False)
+    filtered_gdf = gdf[gdf["count"] > min_historical_days]
+    geos = list(filtered_gdf.head(nb_geos).index)
+    return geos
+
+
+# Copied from covid_xprize/examples/predictors/lstm/xprize_predictor.py
+def _create_country_samples(df: pd.DataFrame, geos: list) -> dict:
+    """
+    For each country, creates numpy arrays for Keras
+    :param df: a Pandas DataFrame with historical data for countries (the "Oxford" dataset)
+    :param geos: a list of geo names
+    :return: a dictionary of train and test sets, for each specified country
+    """
+    context_column = 'PredictionRatio'
+    action_columns = NPI_COLUMNS
+    outcome_column = 'PredictionRatio'
+    country_samples = {}
+    for g in geos:
+        cdf = df[df.GeoID == g]
+        cdf = cdf[cdf.ConfirmedCases.notnull()]
+        context_data = np.array(cdf[context_column])
+        action_data = np.array(cdf[action_columns])
+        outcome_data = np.array(cdf[outcome_column])
+        context_samples = []
+        action_samples = []
+        outcome_samples = []
+        nb_total_days = outcome_data.shape[0]
+        for d in range(NB_LOOKBACK_DAYS, nb_total_days):
+            context_samples.append(context_data[d - NB_LOOKBACK_DAYS:d])
+            action_samples.append(action_data[d - NB_LOOKBACK_DAYS:d])
+            outcome_samples.append(outcome_data[d])
+        if len(outcome_samples) > 0:
+            X_context = np.expand_dims(np.stack(context_samples, axis=0), axis=2)
+            X_action = np.stack(action_samples, axis=0)
+            y = np.stack(outcome_samples, axis=0)
+            country_samples[g] = {
+                'X_context': X_context,
+                'X_action': X_action,
+                'y': y,
+                'X_train_context': X_context[:-NB_TEST_DAYS],
+                'X_train_action': X_action[:-NB_TEST_DAYS],
+                'y_train': y[:-NB_TEST_DAYS],
+                'X_test_context': X_context[-NB_TEST_DAYS:],
+                'X_test_action': X_action[-NB_TEST_DAYS:],
+                'y_test': y[-NB_TEST_DAYS:],
+            }
+    return country_samples
 
 if __name__ == "__main__":
     DATA_FILE_PATH = "/home/ubuntu/zilun/covid-xprize/covid_xprize/examples/predictors/data/OxCGRT_latest.csv"
 
     df = _prepare_dataframe(DATA_FILE_PATH)
-
     print(df.head())
+
+    geos = _most_affected_geos(df, MAX_NB_COUNTRIES, NB_LOOKBACK_DAYS)
+    print(type(geos))
+    country_samples = _create_country_samples(df, geos)
+    print(type(country_samples))
+
+    # Aggregate data for training
+    all_X_context_list = [country_samples[c]['X_train_context']
+                          for c in country_samples]
+    all_X_action_list = [country_samples[c]['X_train_action']
+                         for c in country_samples]
+    all_y_list = [country_samples[c]['y_train']
+                  for c in country_samples]
+    X_context = np.concatenate(all_X_context_list)
+    X_action = np.concatenate(all_X_action_list)
+    y = np.concatenate(all_y_list)
+
+    print(X_context[:5])
+    print(X_action[:5])
+    print(y[:5])
