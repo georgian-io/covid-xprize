@@ -1,0 +1,23 @@
+2020-12-10 01:07:49,357; INFO; nprophet.utils; set_auto_seasonalities; Disabling yearly seasonality. Run NeuralProphet with yearly_seasonality=True to override this.
+2020-12-10 01:07:49,359; INFO; nprophet.utils; set_auto_seasonalities; Disabling daily seasonality. Run NeuralProphet with daily_seasonality=True to override this.
+2020-12-10 01:07:49,360; INFO; nprophet.config; set_auto_batch_epoch; Auto-set batch_size to 8
+2020-12-10 01:07:49,360; INFO; nprophet.config; set_auto_batch_epoch; Auto-set epochs to 100
+2020-12-10 01:07:49,508; INFO; nprophet; _lr_range_test; learning rate range test found optimal lr: 1.00E+00
+2020-12-10 01:08:48,841; INFO; nprophet.utils; set_auto_seasonalities; Disabling yearly seasonality. Run NeuralProphet with yearly_seasonality=True to override this.
+2020-12-10 01:08:48,847; INFO; nprophet.utils; set_auto_seasonalities; Disabling daily seasonality. Run NeuralProphet with daily_seasonality=True to override this.
+2020-12-10 01:08:48,847; INFO; nprophet.config; set_auto_batch_epoch; Auto-set batch_size to 8
+2020-12-10 01:08:48,848; INFO; nprophet.config; set_auto_batch_epoch; Auto-set epochs to 100
+2020-12-10 01:08:48,964; INFO; nprophet; _lr_range_test; learning rate range test found optimal lr: 1.00E+00
+2020-12-10 01:26:03,781; INFO; nprophet.utils; set_auto_seasonalities; Disabling yearly seasonality. Run NeuralProphet with yearly_seasonality=True to override this.
+2020-12-10 01:26:03,782; INFO; nprophet.utils; set_auto_seasonalities; Disabling daily seasonality. Run NeuralProphet with daily_seasonality=True to override this.
+2020-12-10 01:26:03,785; INFO; nprophet.config; set_auto_batch_epoch; Auto-set batch_size to 8
+2020-12-10 01:26:03,786; INFO; nprophet.config; set_auto_batch_epoch; Auto-set epochs to 125
+2020-12-10 01:26:03,897; INFO; nprophet; _lr_range_test; learning rate range test found optimal lr: 1.00E+00
+2020-12-10 01:26:07,828; INFO; nprophet; _evaluate; Validation metrics:    SmoothL1Loss      MAE
+1         0.671 1927.225
+2020-12-10 01:29:37,400; ERROR; nprophet.df_utils; auto_normalization_setting; encountered variable with one unique value
+2020-12-10 01:31:41,859; INFO; nprophet.config; set_auto_batch_epoch; Auto-set batch_size to 8
+2020-12-10 01:31:41,861; INFO; nprophet.config; set_auto_batch_epoch; Auto-set epochs to 125
+2020-12-10 01:31:41,975; INFO; nprophet; _lr_range_test; learning rate range test found optimal lr: 2.31E+00
+2020-12-10 01:31:45,884; INFO; nprophet; _evaluate; Validation metrics:    SmoothL1Loss     MAE
+1         0.113 639.619
