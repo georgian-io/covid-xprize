@@ -5,7 +5,7 @@ venv/
 __pycache__
 *.pyc
 .idea/
-
+covid_xprize_pipeline/save
 predictions/
 prescriptions/
 

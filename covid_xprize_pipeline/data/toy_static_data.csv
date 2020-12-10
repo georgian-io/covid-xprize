@@ -1,0 +1,266 @@
+,number_of_hospitals,avg_temp,GeoID
+0,150,-18,Aruba
+1,97,-7,Afghanistan
+2,76,-36,Angola
+3,111,39,Albania
+4,105,-18,Andorra
+5,57,-25,United Arab Emirates
+6,77,-21,Argentina
+7,93,-33,Australia
+8,24,-18,Austria
+9,99,32,Azerbaijan
+10,85,48,Burundi
+11,134,41,Belgium
+12,27,38,Benin
+13,12,19,Burkina Faso
+14,26,-7,Bangladesh
+15,55,26,Bulgaria
+16,141,-38,Bahrain
+17,11,32,Bahamas
+18,87,-35,Bosnia and Herzegovina
+19,56,40,Belarus
+20,156,-1,Belize
+21,116,44,Bermuda
+22,85,17,Bolivia
+23,35,-29,Brazil / Acre
+24,14,-36,Brazil / Alagoas
+25,6,-4,Brazil / Amazonas
+26,18,16,Brazil / Amapa
+27,56,-37,Brazil / Bahia
+28,152,3,Brazil / Ceara
+29,45,49,Brazil / Distrito Federal
+30,48,44,Brazil / Espirito Santo
+31,37,16,Brazil / Goias
+32,136,-12,Brazil / Maranhao
+33,139,22,Brazil / Minas Gerais
+34,59,-2,Brazil / Mato Grosso do Sul
+35,53,-12,Brazil / Mato Grosso
+36,16,5,Brazil / Para
+37,43,32,Brazil / Paraiba
+38,12,-26,Brazil / Pernambuco
+39,44,-16,Brazil / Piaui
+40,149,-24,Brazil / Parana
+41,142,4,Brazil / Rio de Janeiro
+42,144,-22,Brazil / Rio Grande do Norte
+43,36,24,Brazil / Rondonia
+44,25,-34,Brazil / Roraima
+45,10,-30,Brazil / Rio Grande do Sul
+46,111,-26,Brazil / Santa Catarina
+47,20,12,Brazil / Sergipe
+48,16,14,Brazil / Sao Paulo
+49,111,-17,Brazil / Tocantins
+50,65,24,Brazil
+51,58,47,Barbados
+52,62,-37,Brunei
+53,37,34,Bhutan
+54,119,-4,Botswana
+55,8,46,Central African Republic
+56,110,-2,Canada
+57,18,4,Switzerland
+58,88,32,Chile
+59,126,36,China
+60,65,30,Cote d'Ivoire
+61,155,-39,Cameroon
+62,66,-21,Democratic Republic of Congo
+63,125,8,Congo
+64,3,-15,Colombia
+65,21,-13,Comoros
+66,156,30,Cape Verde
+67,16,38,Costa Rica
+68,4,30,Cuba
+69,115,47,Cyprus
+70,112,27,Czech Republic
+71,109,-20,Germany
+72,129,-21,Djibouti
+73,44,-26,Dominica
+74,40,4,Denmark
+75,131,-21,Dominican Republic
+76,89,-11,Algeria
+77,65,-31,Ecuador
+78,92,1,Egypt
+79,75,26,Eritrea
+80,75,-12,Spain
+81,66,-14,Estonia
+82,9,39,Ethiopia
+83,113,23,Finland
+84,89,36,Fiji
+85,145,43,France
+86,100,18,Faeroe Islands
+87,73,42,Gabon
+88,140,36,United Kingdom
+89,135,20,United Kingdom / England
+90,51,-2,United Kingdom / Northern Ireland
+91,53,16,United Kingdom / Scotland
+92,92,13,United Kingdom / Wales
+93,79,39,Georgia
+94,139,44,Ghana
+95,5,-15,Guinea
+96,87,0,Gambia
+97,1,0,Greece
+98,157,26,Greenland
+99,37,21,Guatemala
+100,3,31,Guam
+101,5,31,Guyana
+102,150,3,Hong Kong
+103,116,46,Honduras
+104,56,-38,Croatia
+105,73,-28,Haiti
+106,89,27,Hungary
+107,50,-5,Indonesia
+108,119,34,India
+109,76,47,Ireland
+110,98,48,Iran
+111,2,-40,Iraq
+112,29,8,Iceland
+113,0,-6,Israel
+114,23,-6,Italy
+115,91,37,Jamaica
+116,39,-37,Jordan
+117,133,-26,Japan
+118,21,-21,Kazakhstan
+119,29,-2,Kenya
+120,110,-36,Kyrgyz Republic
+121,0,-6,Cambodia
+122,71,13,South Korea
+123,125,27,Kuwait
+124,80,14,Laos
+125,46,-4,Lebanon
+126,9,-5,Liberia
+127,52,-16,Libya
+128,64,25,Sri Lanka
+129,42,31,Lesotho
+130,129,-16,Lithuania
+131,58,33,Luxembourg
+132,44,-22,Latvia
+133,95,-35,Macao
+134,158,29,Morocco
+135,53,-16,Monaco
+136,5,13,Moldova
+137,117,34,Madagascar
+138,57,8,Mexico
+139,46,17,Mali
+140,157,31,Myanmar
+141,6,10,Mongolia
+142,97,16,Mozambique
+143,50,4,Mauritania
+144,32,47,Mauritius
+145,142,-37,Malawi
+146,4,20,Malaysia
+147,160,3,Namibia
+148,69,39,Niger
+149,119,-22,Nigeria
+150,122,22,Nicaragua
+151,129,45,Netherlands
+152,16,-29,Norway
+153,72,-7,Nepal
+154,65,-2,New Zealand
+155,140,-40,Oman
+156,34,3,Pakistan
+157,129,13,Panama
+158,26,14,Peru
+159,84,38,Philippines
+160,144,21,Papua New Guinea
+161,71,40,Poland
+162,21,8,Puerto Rico
+163,82,26,Portugal
+164,35,49,Paraguay
+165,41,48,Palestine
+166,38,-19,Qatar
+167,148,38,Kosovo
+168,68,11,Romania
+169,24,31,Russia
+170,133,-35,Rwanda
+171,80,15,Saudi Arabia
+172,100,25,Sudan
+173,101,-19,Senegal
+174,101,-21,Singapore
+175,37,-30,Solomon Islands
+176,116,-35,Sierra Leone
+177,149,-34,El Salvador
+178,73,-24,San Marino
+179,118,20,Somalia
+180,0,27,Serbia
+181,131,44,South Sudan
+182,84,-8,Suriname
+183,104,-22,Slovak Republic
+184,146,-32,Slovenia
+185,118,32,Sweden
+186,111,2,Eswatini
+187,74,9,Seychelles
+188,35,-16,Syria
+189,47,-11,Chad
+190,65,-12,Togo
+191,12,29,Thailand
+192,104,-14,Tajikistan
+193,135,-6,Turkmenistan
+194,151,47,Timor-Leste
+195,82,44,Trinidad and Tobago
+196,148,-19,Tunisia
+197,151,-17,Turkey
+198,62,-23,Taiwan
+199,120,35,Tanzania
+200,102,22,Uganda
+201,1,13,Ukraine
+202,38,41,Uruguay
+203,143,-19,United States
+204,118,-23,United States / Alaska
+205,3,40,United States / Alabama
+206,44,48,United States / Arkansas
+207,16,-33,United States / Arizona
+208,12,22,United States / California
+209,11,-2,United States / Colorado
+210,147,11,United States / Connecticut
+211,137,15,United States / Washington DC
+212,100,44,United States / Delaware
+213,56,32,United States / Florida
+214,72,34,United States / Georgia
+215,96,-5,United States / Hawaii
+216,3,-34,United States / Iowa
+217,41,16,United States / Idaho
+218,48,19,United States / Illinois
+219,6,34,United States / Indiana
+220,58,21,United States / Kansas
+221,94,-38,United States / Kentucky
+222,119,-2,United States / Louisiana
+223,81,-34,United States / Massachusetts
+224,125,-24,United States / Maryland
+225,101,-22,United States / Maine
+226,0,44,United States / Michigan
+227,124,4,United States / Minnesota
+228,31,50,United States / Missouri
+229,65,1,United States / Mississippi
+230,77,-28,United States / Montana
+231,15,48,United States / North Carolina
+232,2,-11,United States / North Dakota
+233,91,-33,United States / Nebraska
+234,77,26,United States / New Hampshire
+235,3,0,United States / New Jersey
+236,92,1,United States / New Mexico
+237,143,-12,United States / Nevada
+238,36,6,United States / New York
+239,12,38,United States / Ohio
+240,8,-22,United States / Oklahoma
+241,115,33,United States / Oregon
+242,28,11,United States / Pennsylvania
+243,60,22,United States / Rhode Island
+244,5,-2,United States / South Carolina
+245,72,7,United States / South Dakota
+246,27,36,United States / Tennessee
+247,40,11,United States / Texas
+248,143,47,United States / Utah
+249,24,-30,United States / Virginia
+250,138,35,United States / Virgin Islands
+251,29,23,United States / Vermont
+252,19,29,United States / Washington
+253,112,-6,United States / Wisconsin
+254,112,-11,United States / West Virginia
+255,22,11,United States / Wyoming
+256,48,-13,Uzbekistan
+257,13,-1,Venezuela
+258,78,34,United States Virgin Islands
+259,42,36,Vietnam
+260,19,4,Vanuatu
+261,117,23,Yemen
+262,123,-24,South Africa
+263,91,-13,Zambia
+264,125,-3,Zimbabwe
