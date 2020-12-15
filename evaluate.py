@@ -60,7 +60,8 @@ def evaluate(prediction_file):
     
     total_loss = 0
     for g in geos:
-        total_loss = ranking_df[ranking_df['GeoID'] == g].Diff7DMA.sum()/(ranking_df[ranking_df.GeoID == g].Population.iloc[0]/100000)
+        if ~np.isnan(ranking_df[ranking_df.GeoID == g].Population.iloc[0]):
+            total_loss += ranking_df[ranking_df['GeoID'] == g].Diff7DMA.sum()/(ranking_df[ranking_df.GeoID == g].Population.iloc[0]/100000)
     
     return total_loss
 
