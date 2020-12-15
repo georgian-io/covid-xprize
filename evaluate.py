@@ -4,7 +4,7 @@ import numpy as np
 import argparse
 
 START_DATE = pd.to_datetime('2020-11-16', format='%Y-%m-%d')
-END_DATE = pd.to_datetime('2020-12-07', format='%Y-%m-%d')
+END_DATE = pd.to_datetime('2020-11-30', format='%Y-%m-%d')
 WINDOW_SIZE = 7
 
 def get_predictions_from_file(predictions_file, ma_df):
@@ -12,7 +12,7 @@ def get_predictions_from_file(predictions_file, ma_df):
                            parse_dates=['Date'],
                            encoding="ISO-8859-1",
                            error_bad_lines=False)
-    preds_df["RegionName"] = preds_df["RegionName"].fillna("")
+#     preds_df["RegionName"] = preds_df["RegionName"].fillna("")
     preds_df["Prediction"] = True
     
     # Append the true number of cases before start date
@@ -34,27 +34,35 @@ def get_predictions_from_file(predictions_file, ma_df):
     return preds_df
 
 def evaluate(prediction_file):
-    actual_df = pd.read_csv('s3://georgianpartners-covid-hackathon/test_actual_df.csv', parse_dates=['Date'],
+    actual_df = pd.read_csv('s3://georgianpartners-covid-hackathon/test_actual_df_v2.csv', parse_dates=['Date'],
                            encoding="ISO-8859-1",
                            error_bad_lines=False)
-    actual_df["RegionName"] = actual_df["RegionName"].fillna("")
+#     actual_df["RegionName"] = actual_df["RegionName"].fillna("")
 
-    ma_df = actual_df[actual_df["Date"] < START_DATE]
+    ma_df = ma_df = actual_df[(actual_df["Date"] < START_DATE)]
     ma_df = ma_df[["CountryName", "RegionName", "Date", "ActualDailyNewCases"]]
     ma_df = ma_df.rename(columns={"ActualDailyNewCases": "PredictedDailyNewCases"})
     ma_df.head()
     
     preds_df = get_predictions_from_file(prediction_file, ma_df)
-    merged_df = actual_df.merge(preds_df, on=['CountryName', 'RegionName', 'Date', 'GeoID'], how='left')
+    preds_df = preds_df[preds_df['Date'] >= START_DATE]
+    preds_df = preds_df[preds_df['Date'] <= END_DATE]
+    merged_df = actual_df.merge(preds_df, on=['CountryName', 'RegionName', 'Date', 'GeoID'], how='right')
     ranking_df = pd.DataFrame()
     ranking_df = ranking_df.append(merged_df)
     ranking_df['DiffDaily'] = (ranking_df["ActualDailyNewCases"] - ranking_df["PredictedDailyNewCases"]).abs()
     ranking_df['Diff7DMA'] = (ranking_df["ActualDailyNewCases7DMA"] - ranking_df["PredictedDailyNewCases7DMA"]).abs()
     ranking_df['CumulDiff7DMA'] = ranking_df.groupby(["GeoID"])['Diff7DMA'].cumsum()
     ranking_df = ranking_df[ranking_df["Date"] >= START_DATE]
-    ranking_df = ranking_df[ranking_df["Date"] >= START_DATE]
+    ranking_df = ranking_df[ranking_df["Date"] <= END_DATE]
     
-    return ranking_df.Diff7DMA.sum()
+    geos = ranking_df.GeoID.unique()
+    
+    total_loss = 0
+    for g in geos:
+        total_loss = ranking_df[ranking_df['GeoID'] == g].Diff7DMA.sum()/(ranking_df[ranking_df.GeoID == g].Population.iloc[0]/100000)
+    
+    return total_loss
 
     
 if __name__ == '__main__':
