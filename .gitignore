@@ -6,6 +6,8 @@ __pycache__
 *.pyc
 .idea/
 covid_xprize_pipeline/save
+covid_xprize_pipeline_downstream_static_feats/save
+
 predictions/
 prescriptions/
 

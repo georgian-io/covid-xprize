@@ -1,4 +1,39 @@
-# XPRIZE Pandemic Response Challenge
+XPRIZE Pandemic Response Challenge
+------------
+## Added to Repo
+There are two new folders `covid_xprize_pipeline` and `covid_xprize_pipeline_downstream_static_feats`
+which are two pipelines for rnn models implemented in PyTorch lightening based on the original repo's
+lstm baseline. 
+
+You will need to install pytorch and pytorch lightning.
+
+### Data
+At a highlevel this baseline splits the covid data by country and incorporates static features that users can add.
+Users need to provide a csv that has a column `GeoID` that corresponds to the different regions to predict. See
+`covid_xprize_pipeline\data\toy_static_data.csv` for an example.
+ 
+### Model 
+The model trains (labels for loss function) on a metric calculated from 
+case numbers and population (still not fully understood). There is always a context feature and an action features. The action feature 
+corresponds to the prevention actions and the context feature is the metric from previous days.
+For predictions it inverses the prediction back to case numbers.
+Likewise during inference, each prediction is the input context feature for the next day's prediction.
+
+### Running
+To run the pipeline, just run the adapted notebook `predictor_robojudge.ipynb` in each respective folder.
+The two folders differ in that `covid_xprize_pipeline_downstream_static_feats` includes static 
+features at the end of rnn model. Meanwhile `covid_xprize_pipeline` adds static features to each timestep.
+You can also change configurations of the experiment in `constants.py`
+
+
+### Next steps
+This model does not result in good performance when testing from Nov 16 to Dec 7.
+It may be worthwhile to understand the unrolling mechanism of the rnn model and the specific
+calculations of the metric from case numbers and population used as labels for training. 
+
+--------
+
+
 
 ## Introduction
 Welcome to the [XPRIZE Pandemic Response Challenge](https://xprize.org/pandemicresponse)! This repository contains what you need to get started in creating your submission for the
