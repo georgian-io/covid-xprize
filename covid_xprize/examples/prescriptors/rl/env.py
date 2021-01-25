@@ -21,6 +21,7 @@ class CovidEnv(gym.Env):
 
         self.date = pd.to_datetime(start_prescription_date)
         self.pred_cases_file = pred_cases_file
+        self.costs_file = costs_file
 
 
     def step(self, action):
@@ -39,14 +40,15 @@ class CovidEnv(gym.Env):
 
         # the predictor gets us to the next state
         self.date += pd.DateOffset(days=1)
-        predict(self.date, self.date, self.observation_space, "prescriptions/preds.csv")
-        df = pd.read_csv("prescriptions/preds.csv",
+        predict(self.date, self.date, self.observation_space, self.pred_cases_file)
+        df = pd.read_csv(self.pred_cases_file,
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
+        # Get reward
         df['Reward'] = 1 / (df["Stringency"] + df["PredictedDailyNewCases"])  # TODO placeholder reward function!!!
         next_state = df[['CountryName', 'RegionName', 'PredictedDailyNewCases']]
-        return next_state,
+        return next_state
 
   def reset(self):
         # Reset the state of the environment to an initial state
