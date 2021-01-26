@@ -13,20 +13,20 @@ class CovidEnv(gym.Env):
     
     NB: currently, this framework can only handle training on a particular (CountryName, RegionName)
     NB: currently, we assume that we start generating policies for the day the IP history ends
-    NB: currently, we freeze all policies for 5 days before we allow the agent to change them -- this number
+    NB: currently, we only generate policies of 1 day before we allow the agent to change action -- this number
             should be optimized later!
+    NB: may want to add a lookback parameter to prevent predict(...) from running on all historical data
     """
 
     def __init__(self, IP_history_file, costs_file):
         super(CovidEnv, self).__init__()
-        # The action_space must be a gym.spaces object
+        # When actions are sampled, one value from each dimension will be selected
         self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
         # self.action_space = spaces.Box(low=np.array([0] * len(utilities.IP_MAX_VALUES)),
         #                                high=np.array(utilities.IP_MAX_VALUES.values()), 
         #                                dtype=np.int32)
 
-        # The observation_space must also inherit from gym.spaces
-        # self.observation_space will hold the number of current DailyNewCases
+        # Observations are number of current DailyNewCases (the predictor outputs a float)
         self.observation_space = spaces.Box(low=0, high=np.inf, dtype=np.float32)
 
         # Load in the IP history from the file 
@@ -35,23 +35,27 @@ class CovidEnv(gym.Env):
                                       encoding="ISO-8859-1",
                                       dtype={"RegionName": str},
                                       error_bad_lines=True)
-        recent_date = IP_history['Date'].max()
 
-        # Let the start date be the last date in the IP history file for now
-        self.date = pd.to_datetime(self.IP_history[self.IP_history["Date"] == recent_date][["CountryName", "RegionName"]])
+        # Keep track of first date and initial history for env.reset()
+        self.first_date = pd.to_datetime(IP_history['Date'].max())
+        self.IP_history_file = IP_history_file
+
+        # Number of days of history to use in predict (can be adjusted!)
+        self.lookback = 30
 
 
     def step(self, action):
         # Execute one time step within the environment
         self._take_action(action)
 
-        # TODO: update the reward function later!!! 
-        reward = - (sum(action) + self.observation_space['current_cases'] * 1/500) 
-        # done = self.net_worth <= 0
+        # TODO: fix the normalization later
+        reward = - (sum(action) + self.observation_space['current_cases'] / 500.) 
+
+        # TODO:considering ending the simulation if it gets "too bad" and try to reset
         done = False
-        obs = self.observation_space
-        
-        return obs, reward, done, {}
+
+        # Update the state to be the new number of cases        
+        return self.state, reward, done, {}
 
 
     def _take_action(self, actions):
@@ -80,10 +84,23 @@ class CovidEnv(gym.Env):
        
         self.observation_space['current_case'] = df[['CountryName', 'RegionName', 'PredictedDailyNewCases']]
 
-  def reset(self):
-        # Reset the state of the environment to an initial state
+
+    def reset(self):
+        # Reset: get the state (number of cases) from the predict function
+        hist = pd.read_csv(self.IP_history_file,
+                           parse_dates=['Date'],
+                           encoding="ISO-8859-1",
+                           dtype={"RegionName": str},
+                           error_bad_lines=True)
+        predict(self.first_date, self.first_date, hist, "preds.csv")
+        pred_df = pd.read_csv("prescriptions/preds.csv",
+                              parse_dates=['Date'],
+                              encoding="ISO-8859-1",
+                              error_bad_lines=True)
+        self.state = pred_df["PredictedDailyNewCases"][0]
+        
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen
+        print("Daily new cases", self.observation_space)
 
-# TODO: to test it, we can try it with random actions 
