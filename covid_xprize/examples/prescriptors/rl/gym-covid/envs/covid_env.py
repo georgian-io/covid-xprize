@@ -1,7 +1,7 @@
 import gym
+import utilities
 import pandas as pd
 from gym import spaces
-from utilities import expand_IP
 from covid_xprize.standard_predictor.predict import predict
 
 
@@ -17,6 +17,7 @@ class CovidEnv(gym.Env):
             should be optimized later!
     NB: may want to add a lookback parameter to prevent predict(...) from running on all historical data
     """
+
 
     def __init__(self, IP_history_file, costs_file):
         super(CovidEnv, self).__init__()
@@ -58,31 +59,34 @@ class CovidEnv(gym.Env):
         return self.state, reward, done, {}
 
 
-    def _take_action(self, actions):
-        # Convert the actions into their expanded form--this is now indexed by CountryName, RegionName, and IPS
-
+    def _take_action(self, action):
+        # Convert the actions into their expanded form--first, add CountryName and RegionName
         prescription_df = pd.DataFrame({'CountryName': "Canada", 'RegionName': "British Columbia"})
         
-        For id, ip in enumerate(IPS):
-            prescription_df[ip] = action[id]
-            action[i] for id, ip in enumerate(IPS)
-        prescription_df = expand_IP(prescription_df)
+        # Add the IPs based on the actions taken--use the utility function to convert integer actions into
+        # values the dataframe can understand!
+        For i, ip in enumerate(utilities.IPS):
+            prescription_df[ip] = action[i]
 
-        # Update the IP history for new predictions--add a date and tack on to the end of the IP_history
+        # Update the IP history for new predictions--add a date and re-order the columns
         prescription_df["Date"] = self.date
         prescription_df = prescription_df[["CountryName", "RegionName", "Date"] + IPS]
-        self.observation_space['IP_history'] = pd.concat([self.observation_space['IP_history'], prescription_df])
 
-        # the predictor gets us to the next state
+        # Update the IP_history by appending on the new prescription
+        self.IP_history = pd.concat([self.IP_history['IP_history'], prescription_df])
+
+        # TODO: consider incrementing the date by more than 1 and applying IPs for more time
         self.date += pd.DateOffset(days=1)
-        # the last argument to predict is just needed for outputting predicted cases
+
+        # The predictor gets us to the next state
         predict(self.date, self.date, self.observation_space, "preds.csv")
         df = pd.read_csv("preds.csv",
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
-       
-        self.observation_space['current_case'] = df[['CountryName', 'RegionName', 'PredictedDailyNewCases']]
+
+        # Update the state variable
+        self.state = df['PredictedDailyNewCases'][0]
 
 
     def reset(self):
