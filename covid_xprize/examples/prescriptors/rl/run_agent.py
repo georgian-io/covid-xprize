@@ -1,5 +1,5 @@
 import gym
-import covid_env
+import gym_covid
 
 
 env = gym.make("covid-env-v0")
