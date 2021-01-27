@@ -67,13 +67,14 @@ class CovidEnv(gym.Env):
     def _take_action(self, action):
         # TODO: consider incrementing the date by more than 1 and applying IPs for more time
         self.date += pd.DateOffset(days=1)
+        print("Actions for " + str(self.date) + ": " + str(action))
 
         # Convert the actions into their expanded form--first, add CountryName and RegionName
         prescription_df = pd.DataFrame([[self.IP_history.loc[0, "CountryName"], self.IP_history.loc[0, "RegionName"], self.date] + list(action)], 
                                         columns=["CountryName", "RegionName", "Date"] + IPS)
 
         # Update the IP_history by appending on the new prescription
-        self.IP_history = pd.concat([self.IP_history, prescription_df])
+        self.IP_history = self.IP_history.append(prescription_df, ignore_index=True)
 
         # Write out file (for the predictor... sigh)
         self.IP_history.to_csv("prescriptions.csv", index=False)
@@ -85,7 +86,7 @@ class CovidEnv(gym.Env):
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
 
-        # Update the state variable
+        # Update the state variable 
         self.state = df.loc[0, 'PredictedDailyNewCases']
 
 

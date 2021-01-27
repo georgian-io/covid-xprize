@@ -22,9 +22,10 @@ if not os.path.isfile(IP_FILE):
 	countries = [country]
 
 	# If we are using historical data, the start and end dates are irrelevant (they specify the dates
-	# between which we would like to freeze the IP, for example)
+	# between which we would like to freeze the IP, for example). Note also that END_DATE does not cut
+	# off the data in the scenario early! 
 	START_DATE = "2021-01-01"
-	END_DATE = "2021-01-05"
+	END_DATE = "2021-01-02"
 	scenario_df = generate_scenario(START_DATE, END_DATE, latest_df, countries, scenario="Historical")
 	scenario_df.to_csv(IP_FILE, index=False)
 
