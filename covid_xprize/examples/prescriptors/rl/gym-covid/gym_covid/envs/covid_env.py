@@ -13,20 +13,23 @@ class CovidEnv(gym.Env):
     IP_history: path to dataframe consisting of the IP history for the relevant (CountryName, RegionName)
     costs_file: (not currently used) cost of interventions for the relevant (CountryName, RegionName)
     
-    NB: currently, this framework can only handle training on a particular (CountryName, RegionName)
-    NB: currently, we assume that we start generating policies for the day the IP history ends
-    NB: currently, we only generate policies of 1 day before we allow the agent to change action -- this number
-            should be optimized later!
-    NB: may want to add a lookback parameter to prevent predict(...) from running on all historical data
+    NB: currently, this framework can only handle training on a particular (CountryName, NaN)
+    TODO: does it matter whether we start generating policies immediately after the IP history ends? I don't think
+          so, since we're considering the long-run optimal policy, but it's worth checking...
+    TODO: allow policies to be "frozen" for several days so we make fewer calls to predict(...)
+    TODO: add a "lookback" parameter to prevent predict(...) from running on all historical data
+    TODO: run timing test to determine which part of the code is slow
+    TODO:considering ending the simulation if it gets "too bad" and try to reset
+    TODO: fix the normalization of the reward function later
     """
 
     def __init__(self, country, IP_history_file, costs_file):
         super(CovidEnv, self).__init__()
         # When actions are sampled, one value from each dimension will be selected
-        self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
-        # self.action_space = spaces.Box(low=np.array([0] * len(IP_MAX_VALUES)),
-        #                                high=np.array(IP_MAX_VALUES.values()), 
-        #                                dtype=np.int32)
+        # For quick tests, use self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
+        self.action_space = spaces.Box(low=np.array([0] * len(IP_MAX_VALUES.values())),
+                                       high=np.array(list(IP_MAX_VALUES.values())), 
+                                       dtype=np.int32)
 
         # Observations are number of current DailyNewCases (the predictor outputs a float)
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, 1), dtype=np.float32)
@@ -42,8 +45,9 @@ class CovidEnv(gym.Env):
         self.first_date = pd.to_datetime(self.IP_history['Date'].max())
         self.IP_history_file = IP_history_file
 
-        # Date counter variable
+        # Date counter and action counter variables
         self.date = self.first_date
+        self.action = np.zeros(self.action_space.shape[0])
 
         # Quick assert
         countries = self.IP_history["CountryName"].to_numpy()
@@ -54,10 +58,10 @@ class CovidEnv(gym.Env):
         # Execute one time step within the environment
         self._take_action(action)
 
-        # TODO: fix the normalization later
+        # Arbitrarily normalized reward function!
         reward = - (sum(action) + self.state / 500.) 
 
-        # TODO:considering ending the simulation if it gets "too bad" and try to reset
+        # Decide when to end the simulation
         done = False
 
         # Update the state to be the new number of cases        
@@ -65,13 +69,13 @@ class CovidEnv(gym.Env):
 
 
     def _take_action(self, action):
-        # TODO: consider incrementing the date by more than 1 and applying IPs for more time
+        self.action = action
         self.date += pd.DateOffset(days=1)
         print("Actions for " + str(self.date) + ": " + str(action))
 
         # Convert the actions into their expanded form--first, add CountryName and RegionName
-        prescription_df = pd.DataFrame([[self.IP_history.loc[0, "CountryName"], self.IP_history.loc[0, "RegionName"], self.date] + list(action)], 
-                                        columns=["CountryName", "RegionName", "Date"] + IPS)
+        prescription_df = pd.DataFrame([[self.IP_history.loc[0, "CountryName"], self.IP_history.loc[0, "RegionName"], self.date] + \
+                                            list(action)], columns=["CountryName", "RegionName", "Date"] + IPS)
 
         # Update the IP_history by appending on the new prescription
         self.IP_history = self.IP_history.append(prescription_df, ignore_index=True)
@@ -98,9 +102,10 @@ class CovidEnv(gym.Env):
                               encoding="ISO-8859-1",
                               error_bad_lines=True)
         self.state = pred_df.loc[0, "PredictedDailyNewCases"]
+        return self.state
         
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen
-        print("Daily new cases", self.state)
+        print("Daily new cases", self.state, "\t\tCurrent action sum", sum(self.action))
 
