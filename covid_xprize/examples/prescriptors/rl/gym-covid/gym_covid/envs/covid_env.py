@@ -41,8 +41,8 @@ class CovidEnv(gym.Env):
         self.first_date = pd.to_datetime(self.IP_history['Date'].max())
         self.IP_history_file = IP_history_file
 
-        # Number of days of history to use in predict (can be adjusted!)
-        self.lookback = 30
+        # Date counter variable
+        self.date = self.first_date
 
 
     def step(self, action):
@@ -50,7 +50,7 @@ class CovidEnv(gym.Env):
         self._take_action(action)
 
         # TODO: fix the normalization later
-        reward = - (sum(action) + self.observation_space['current_cases'] / 500.) 
+        reward = - (sum(action) + self.state / 500.) 
 
         # TODO:considering ending the simulation if it gets "too bad" and try to reset
         done = False
@@ -60,27 +60,21 @@ class CovidEnv(gym.Env):
 
 
     def _take_action(self, action):
-        # Convert the actions into their expanded form--first, add CountryName and RegionName
-        prescription_df = pd.DataFrame({'CountryName': self.IP_history.loc[0, "CountryName"], 
-                                        'RegionName': self.IP_history.loc[0, "RegionName"]})
-        
-        # Add the IPs based on the actions taken--use the utility function to convert integer actions into
-        # values the dataframe can understand!
-        for i, ip in enumerate(IPS):
-            prescription_df[ip] = action[i]
-
-        # Update the IP history for new predictions--add a date and re-order the columns
-        prescription_df["Date"] = self.date
-        prescription_df = prescription_df[["CountryName", "RegionName", "Date"] + IPS]
-
-        # Update the IP_history by appending on the new prescription
-        self.IP_history = pd.concat([self.IP_history['IP_history'], prescription_df])
-
         # TODO: consider incrementing the date by more than 1 and applying IPs for more time
         self.date += pd.DateOffset(days=1)
 
+        # Convert the actions into their expanded form--first, add CountryName and RegionName
+        prescription_df = pd.DataFrame([[self.IP_history.loc[0, "CountryName"], self.IP_history.loc[0, "RegionName"], self.date] + list(action)], 
+                                        columns=["CountryName", "RegionName", "Date"] + IPS)
+
+        # Update the IP_history by appending on the new prescription
+        self.IP_history = pd.concat([self.IP_history, prescription_df])
+
+        # Write out file (for the predictor... sigh)
+        self.IP_history.to_csv("prescriptions.csv", index=False)
+
         # The predictor gets us to the next state
-        predict(self.date, self.date, self.observation_space, "predictions/preds.csv")
+        predict(self.date, self.date, "prescriptions.csv", "predictions/preds.csv")
         df = pd.read_csv("predictions/preds.csv",
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
@@ -102,5 +96,5 @@ class CovidEnv(gym.Env):
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen
-        print("Daily new cases", self.observation_space)
+        print("Daily new cases", self.state)
 
