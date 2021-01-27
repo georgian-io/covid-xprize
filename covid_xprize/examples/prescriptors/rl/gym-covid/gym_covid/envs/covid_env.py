@@ -1,8 +1,9 @@
 import gym
-import utilities
+import numpy as np
 import pandas as pd
 from gym import spaces
 from covid_xprize.standard_predictor.predict import predict
+from covid_xprize.examples.prescriptors.rl.utilities import IP_MAX_VALUES, IPS
 
 
 class CovidEnv(gym.Env):
@@ -18,17 +19,16 @@ class CovidEnv(gym.Env):
     NB: may want to add a lookback parameter to prevent predict(...) from running on all historical data
     """
 
-
     def __init__(self, IP_history_file, costs_file):
         super(CovidEnv, self).__init__()
         # When actions are sampled, one value from each dimension will be selected
         self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
-        # self.action_space = spaces.Box(low=np.array([0] * len(utilities.IP_MAX_VALUES)),
-        #                                high=np.array(utilities.IP_MAX_VALUES.values()), 
+        # self.action_space = spaces.Box(low=np.array([0] * len(IP_MAX_VALUES)),
+        #                                high=np.array(IP_MAX_VALUES.values()), 
         #                                dtype=np.int32)
 
         # Observations are number of current DailyNewCases (the predictor outputs a float)
-        self.observation_space = spaces.Box(low=0, high=np.inf, dtype=np.float32)
+        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, 1), dtype=np.float32)
 
         # Load in the IP history from the file 
         self.IP_history = pd.read_csv(IP_history_file,
@@ -38,7 +38,7 @@ class CovidEnv(gym.Env):
                                       error_bad_lines=True)
 
         # Keep track of first date and initial history for env.reset()
-        self.first_date = pd.to_datetime(IP_history['Date'].max())
+        self.first_date = pd.to_datetime(self.IP_history['Date'].max())
         self.IP_history_file = IP_history_file
 
         # Number of days of history to use in predict (can be adjusted!)
@@ -61,11 +61,12 @@ class CovidEnv(gym.Env):
 
     def _take_action(self, action):
         # Convert the actions into their expanded form--first, add CountryName and RegionName
-        prescription_df = pd.DataFrame({'CountryName': "Canada", 'RegionName': "British Columbia"})
+        prescription_df = pd.DataFrame({'CountryName': self.IP_history.loc[0, "CountryName"], 
+                                        'RegionName': self.IP_history.loc[0, "RegionName"]})
         
         # Add the IPs based on the actions taken--use the utility function to convert integer actions into
         # values the dataframe can understand!
-        For i, ip in enumerate(utilities.IPS):
+        for i, ip in enumerate(IPS):
             prescription_df[ip] = action[i]
 
         # Update the IP history for new predictions--add a date and re-order the columns
@@ -79,29 +80,24 @@ class CovidEnv(gym.Env):
         self.date += pd.DateOffset(days=1)
 
         # The predictor gets us to the next state
-        predict(self.date, self.date, self.observation_space, "preds.csv")
-        df = pd.read_csv("preds.csv",
+        predict(self.date, self.date, self.observation_space, "predictions/preds.csv")
+        df = pd.read_csv("predictions/preds.csv",
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
 
         # Update the state variable
-        self.state = df['PredictedDailyNewCases'][0]
+        self.state = df.loc[0, 'PredictedDailyNewCases']
 
 
     def reset(self):
         # Reset: get the state (number of cases) from the predict function
-        hist = pd.read_csv(self.IP_history_file,
-                           parse_dates=['Date'],
-                           encoding="ISO-8859-1",
-                           dtype={"RegionName": str},
-                           error_bad_lines=True)
-        predict(self.first_date, self.first_date, hist, "preds.csv")
-        pred_df = pd.read_csv("prescriptions/preds.csv",
+        predict(self.first_date, self.first_date, self.IP_history_file, "predictions/preds.csv")
+        pred_df = pd.read_csv("predictions/preds.csv",
                               parse_dates=['Date'],
                               encoding="ISO-8859-1",
                               error_bad_lines=True)
-        self.state = pred_df["PredictedDailyNewCases"][0]
+        self.state = pred_df.loc[0, "PredictedDailyNewCases"]
         
 
     def render(self, mode='human', close=False):
