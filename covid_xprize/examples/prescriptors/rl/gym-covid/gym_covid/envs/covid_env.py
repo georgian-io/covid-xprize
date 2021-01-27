@@ -9,6 +9,7 @@ from covid_xprize.examples.prescriptors.rl.utilities import IP_MAX_VALUES, IPS
 class CovidEnv(gym.Env):
     """
     Custom Environment that follows gym interface
+    country: the CovidEnv can only make policies for a single region at a time--specify the desired country
     IP_history: path to dataframe consisting of the IP history for the relevant (CountryName, RegionName)
     costs_file: (not currently used) cost of interventions for the relevant (CountryName, RegionName)
     
@@ -19,7 +20,7 @@ class CovidEnv(gym.Env):
     NB: may want to add a lookback parameter to prevent predict(...) from running on all historical data
     """
 
-    def __init__(self, IP_history_file, costs_file):
+    def __init__(self, country, IP_history_file, costs_file):
         super(CovidEnv, self).__init__()
         # When actions are sampled, one value from each dimension will be selected
         self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
@@ -43,6 +44,10 @@ class CovidEnv(gym.Env):
 
         # Date counter variable
         self.date = self.first_date
+
+        # Quick assert
+        countries = self.IP_history["CountryName"].to_numpy()
+        assert((country == countries).all())
 
 
     def step(self, action):
