@@ -12,18 +12,18 @@ class CovidEnv(gym.Env):
     country: the CovidEnv can only make policies for a single region at a time--specify the desired country
     IP_history: path to dataframe consisting of the IP history for the relevant (CountryName, RegionName)
     costs_file: (not currently used) cost of interventions for the relevant (CountryName, RegionName)
+    lookback: how many days of IP history to preserve (if None, everything is used)
+    freeze: number of days for which to freeze a policy before allowing the agent to change
     
     NB: currently, this framework can only handle training on a particular (CountryName, NaN)
     TODO: does it matter whether we start generating policies immediately after the IP history ends? I don't think
           so, since we're considering the long-run optimal policy, but it's worth checking...
-    TODO: allow policies to be "frozen" for several days so we make fewer calls to predict(...)
-    TODO: add a "lookback" parameter to prevent predict(...) from running on all historical data
     TODO: run timing test to determine which part of the code is slow
-    TODO:considering ending the simulation if it gets "too bad" and try to reset
+    TODO: considering ending the simulation if it gets "too bad" and try to reset
     TODO: fix the normalization of the reward function later
     """
 
-    def __init__(self, country, IP_history_file, costs_file):
+    def __init__(self, country, IP_history_file, costs_file, lookback=10, freeze=7):
         super(CovidEnv, self).__init__()
         # When actions are sampled, one value from each dimension will be selected
         # For quick tests, use self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
@@ -34,16 +34,24 @@ class CovidEnv(gym.Env):
         # Observations are number of current DailyNewCases (the predictor outputs a float)
         self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, 1), dtype=np.float32)
 
+        # Lookback tells us how much data we should call on predict(...) at any time
+        if lookback is None:
+            self.lookback = 0
+        else:
+            self.lookback = -lookback
+        self.freeze = freeze
+
         # Load in the IP history from the file 
-        self.IP_history = pd.read_csv(IP_history_file,
+        self.IP_history_file = IP_history_file
+        self.IP_history = pd.read_csv(self.IP_history_file,
                                       parse_dates=['Date'],
                                       encoding="ISO-8859-1",
                                       dtype={"RegionName": str},
                                       error_bad_lines=True)
+        self.IP_history = self.IP_history.iloc[self.lookback:].reset_index()
 
         # Keep track of first date and initial history for env.reset()
         self.first_date = pd.to_datetime(self.IP_history['Date'].max())
-        self.IP_history_file = IP_history_file
 
         # Date counter and action counter variables
         self.date = self.first_date
@@ -70,31 +78,49 @@ class CovidEnv(gym.Env):
 
     def _take_action(self, action):
         self.action = action
-        self.date += pd.DateOffset(days=1)
-        print("Actions for " + str(self.date) + ": " + str(action))
 
-        # Convert the actions into their expanded form--first, add CountryName and RegionName
-        prescription_df = pd.DataFrame([[self.IP_history.loc[0, "CountryName"], self.IP_history.loc[0, "RegionName"], self.date] + \
-                                            list(action)], columns=["CountryName", "RegionName", "Date"] + IPS)
+        # Append the new prescriptions to the IP_history
+        prescription_df = pd.DataFrame({"CountryName": self.IP_history.loc[:self.freeze - 1, "CountryName"],
+                                        "RegionName": self.IP_history.loc[:self.freeze - 1, "RegionName"],
+                                        "Date": pd.date_range(start=self.date, end=self.date + pd.DateOffset(days=self.freeze - 1))})
+        for i, ip in enumerate(IPS):
+            prescription_df[ip] = [action[i]] * self.freeze
 
-        # Update the IP_history by appending on the new prescription
         self.IP_history = self.IP_history.append(prescription_df, ignore_index=True)
+
+        # Increment the date and write out some debugging info
+        self.date += pd.DateOffset(days=self.freeze)
+
+        # Remove the oldest rows of the dataframe (in accordance with lookback parameter)
+        if self.lookback != 0:
+            self.IP_history = self.IP_history.iloc[self.freeze:].reset_index(drop=True)
 
         # Write out file (for the predictor... sigh)
         self.IP_history.to_csv("prescriptions.csv", index=False)
 
         # The predictor gets us to the next state
-        predict(self.date, self.date, "prescriptions.csv", "predictions/preds.csv")
+        predict(self.date, self.date + pd.DateOffset(days=self.freeze - 1), "prescriptions.csv", "predictions/preds.csv")
         df = pd.read_csv("predictions/preds.csv",
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
 
         # Update the state variable 
-        self.state = df.loc[0, 'PredictedDailyNewCases']
+        self.state = np.sum(df['PredictedDailyNewCases'])
 
 
     def reset(self):
+        # Reset the date
+        self.date = self.first_date
+
+        # Reset the IP history
+        self.IP_history = pd.read_csv(self.IP_history_file,
+                                      parse_dates=['Date'],
+                                      encoding="ISO-8859-1",
+                                      dtype={"RegionName": str},
+                                      error_bad_lines=True)
+        self.IP_history = self.IP_history.iloc[self.lookback:].reset_index()
+
         # Reset: get the state (number of cases) from the predict function
         predict(self.first_date, self.first_date, self.IP_history_file, "predictions/preds.csv")
         pred_df = pd.read_csv("predictions/preds.csv",
