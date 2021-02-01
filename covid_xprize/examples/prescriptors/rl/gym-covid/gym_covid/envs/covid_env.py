@@ -19,11 +19,9 @@ class CovidEnv(gym.Env):
     TODO: does it matter whether we start generating policies immediately after the IP history ends? I don't think
           so, since we're considering the long-run optimal policy, but it's worth checking...
     TODO: run timing test to determine which part of the code is slow
-    TODO: considering ending the simulation if it gets "too bad" and try to reset
-    TODO: fix the normalization of the reward function later
     """
 
-    def __init__(self, country, IP_history_file, costs_file, lookback=10, freeze=7):
+    def __init__(self, country, IP_history_file, lookback=10, freeze=7, action_weight=0.5):
         super(CovidEnv, self).__init__()
         # When actions are sampled, one value from each dimension will be selected
         # For quick tests, use self.action_space = spaces.Box(low=np.zeros(12), high=np.ones(12), dtype=np.int32)
@@ -32,7 +30,13 @@ class CovidEnv(gym.Env):
                                        dtype=np.int32)
 
         # Observations are number of current DailyNewCases (the predictor outputs a float)
-        self.observation_space = spaces.Box(low=0, high=np.inf, shape=(1, 1), dtype=np.float32)
+        sp = { 
+            'cases': spaces.Box(low=0, high=np.inf, shape=(1, 1), dtype=np.float32),
+            'costs': spaces.Box(low=np.array([0] * len(IP_MAX_VALUES.values())),
+                                high=np.array([1] * len(IP_MAX_VALUES.values())), 
+                                dtype=np.float32)
+        }
+        self.observation_space = gym.spaces.Dict(sp)
 
         # Lookback tells us how much data we should call on predict(...) at any time
         if lookback is None:
@@ -56,6 +60,10 @@ class CovidEnv(gym.Env):
         # Date counter and action counter variables
         self.date = self.first_date
         self.action = np.zeros(self.action_space.shape[0])
+        self.action_weight = action_weight
+
+        # Counter for the number of rounds we've done
+        self.round_counter = 0
 
         # Quick assert
         countries = self.IP_history["CountryName"].to_numpy()
@@ -67,13 +75,25 @@ class CovidEnv(gym.Env):
         self._take_action(action)
 
         # Arbitrarily normalized reward function!
-        reward = - (sum(action) + self.state / 500.) 
+        reward = self._reward(action)
 
-        # Decide when to end the simulation
-        done = False
+        # Decide when to end the simulation--always end after 180 days?
+        self.round_counter += 1
+        if self.round_counter * self.freeze >= 180:
+            done = True
+        else:
+            done = False
 
         # Update the state to be the new number of cases        
         return self.state, reward, done, {}
+
+
+    def _reward(self, action):
+        # Normalize the costs and compute a reward
+        normed_costs = self.state['costs'] / sum(self.state['costs'])
+        action_reward = self.action_weight * sum(np.dot(action, normed_costs)) / 12.
+        state_reward = (1 - self.action_weight) * self.state['cases'] / self.initial_state
+        return -1. * (action_reward + state_reward)
 
 
     def _take_action(self, action):
@@ -106,12 +126,17 @@ class CovidEnv(gym.Env):
                          error_bad_lines=True)
 
         # Update the state variable 
-        self.state = np.sum(df['PredictedDailyNewCases'])
+        self.state['cases'] = np.sum(df['PredictedDailyNewCases'])
 
 
     def reset(self):
-        # Reset the date
+        # Define state to be a dictionary containing cases and costs
+        self.state = {}
+
+        # Reset the date + counters
         self.date = self.first_date
+        self.round_counter = 0
+        self.action = np.zeros(self.action_space.shape[0])
 
         # Reset the IP history
         self.IP_history = pd.read_csv(self.IP_history_file,
@@ -127,11 +152,19 @@ class CovidEnv(gym.Env):
                               parse_dates=['Date'],
                               encoding="ISO-8859-1",
                               error_bad_lines=True)
-        self.state = pred_df.loc[0, "PredictedDailyNewCases"]
+        self.state['cases'] = pred_df.loc[0, "PredictedDailyNewCases"]
+
+        # Keep track of the initial number of cases
+        self.initial_state = self.state['cases']
+
+        # Randomly generate some costs
+        self.state['costs'] = np.random.rand(12)
+
+        # Return the state
         return self.state
         
 
     def render(self, mode='human', close=False):
         # Render the environment to the screen
-        print("Daily new cases", self.state, "\t\tCurrent action sum", sum(self.action))
+        print("Daily new cases", self.state['cases'], "\t\tCurrent action sum", sum(self.action))
 

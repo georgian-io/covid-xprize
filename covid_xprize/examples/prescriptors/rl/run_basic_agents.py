@@ -38,7 +38,7 @@ if not os.path.isfile(IP_FILE):
 
 
 # Create the environment and agent
-env = gym.make("covid-env-v0", country=country, IP_history_file=IP_FILE, costs_file="costs_file_not_currently_used.txt")
+env = gym.make("covid-env-v0", country=country, IP_history_file=IP_FILE)
 observation = env.reset()
 if method == "random":
 	agent = RandomAgent(env.action_space)
