@@ -29,12 +29,15 @@ class CovidEnv(gym.Env):
         self.action_space = spaces.Box(low=np.array([0] * len(IP_MAX_VALUES.values())),
                                        high=np.array(list(IP_MAX_VALUES.values())), 
                                        dtype=np.int32)
+        
+        # Placeholder: this variable is used to map scalar number to which sets of actions it refers to
+        self._action_map = None
 
         # Observations are number of current DailyNewCases (the predictor outputs a float)--although the dict
         # structure exists, it is not compatible with Tianshou, so we will make the first indes of the
         # observations correspond to cases and the remaining indices correspond to costs
-        self.observation_space = spaces.Box(low=np.array([0] * (len(IP_MAX_VALUES.values()) + 1)),
-                                            high=np.array([np.inf] + list(IP_MAX_VALUES.values())),
+        self.observation_space = spaces.Box(low=np.array([0]), # * (len(IP_MAX_VALUES.values()) + 1)),
+                                            high=np.array([np.inf]), # + list(IP_MAX_VALUES.values())),
                                             dtype=np.float64)
 
         # Lookback tells us how much data we should call on predict(...) at any time
@@ -70,6 +73,19 @@ class CovidEnv(gym.Env):
 
 
     def step(self, action):
+        import timeit; start = timeit.timeit()
+        # If action is a scalar, need to map back to original action space, e.g. in DQN
+        if np.isscalar(action):
+            action = self._map_scalar_action(action)
+        
+        # Check that action is an integer and is within the IP_MAX_VALUES. Otherwise, replace with max e.g. in SAC
+        action = np.round(action)
+        for i in range(len(list(action))):
+            if i > self.action_space.high[i]:
+                action[i] = self.action_space.high[i]
+            if i < self.action_space.low[i]:
+                action[i] = self.action_space.low[i]
+
         # Execute one time step within the environment
         self._take_action(action)
 
@@ -82,27 +98,41 @@ class CovidEnv(gym.Env):
             done = True
         else:
             done = False
-
+        #print(reward)
+        end = timeit.timeit()
+        #print("Step function", end - start
         # Update the state to be the new number of cases        
         return self.state, reward, done, {}
 
 
+    def _map_scalar_action(self, action):
+        # Map back scalar action to what actual IPs it refers to
+        # print(action) # for sanity check that the action map is not wrong
+        if self._action_map is None:
+            ip_levels = []
+            for ip in np.array(list(IP_MAX_VALUES.values())):
+                ip_levels.append(np.arange(ip + 1))
+            self._action_map = np.array(np.meshgrid(*ip_levels)).T.reshape(-1, len(IP_MAX_VALUES))
+        return self._action_map[action]
+
+
     def _reward(self, action):
         # Normalize the costs and compute a reward
-        normed_costs = self.state[1:] / sum(self.state[1:])
-        action_reward = self.action_weight * np.dot(action, normed_costs) / 12.
+        #normed_costs = self.state[1:] / sum(self.state[1:])
+        action_reward = self.action_weight * np.sum(action) / 12. #np.dot(action, normed_costs) / 12.
         state_reward = (1 - self.action_weight) * self.state[0] / self.initial_state
         return -1. * (action_reward + state_reward)
 
 
     def _take_action(self, action):
+        import timeit; start = timeit.timeit()
         self.action = action
 
         # Append the new prescriptions to the IP_history
         prescription_df = pd.DataFrame({"CountryName": self.IP_history.loc[:self.freeze - 1, "CountryName"],
                                         "RegionName": self.IP_history.loc[:self.freeze - 1, "RegionName"],
                                         "Date": pd.date_range(start=self.date, end=self.date + pd.DateOffset(days=self.freeze - 1))})
-        print(action)
+        #print(action)
         for i, ip in enumerate(IPS):
             prescription_df[ip] = [action[i]] * self.freeze
 
@@ -116,22 +146,24 @@ class CovidEnv(gym.Env):
             self.IP_history = self.IP_history.iloc[self.freeze:].reset_index(drop=True)
 
         # Write out file (for the predictor... sigh)
-        self.IP_history.to_csv("prescriptions.csv", index=False)
+        self.IP_history.to_csv("prescriptions_temp.csv", index=False)
 
         # The predictor gets us to the next state
-        predict(self.date, self.date + pd.DateOffset(days=self.freeze - 1), "prescriptions.csv", "predictions/preds.csv")
-        df = pd.read_csv("predictions/preds.csv",
+        predict(self.date, self.date + pd.DateOffset(days=self.freeze - 1), "prescriptions_temp.csv", "predictions/preds_temp.csv")
+        df = pd.read_csv("predictions/preds_temp.csv",
                          parse_dates=['Date'],
                          encoding="ISO-8859-1",
                          error_bad_lines=True)
 
         # Update the state variable 
         self.state[0] = np.sum(df['PredictedDailyNewCases'])
-
+        end = timeit.timeit()
+        #print("_take_action", end - start)
 
     def reset(self):
         # Define state to be a dictionary containing cases and costs
-        self.state = np.zeros(1 + len(IP_MAX_VALUES))
+        #self.state = np.zeros(1 + len(IP_MAX_VALUES))
+        self.state = np.zeros(1)
 
         # Reset the date + counters
         self.date = self.first_date
@@ -147,8 +179,8 @@ class CovidEnv(gym.Env):
         self.IP_history = self.IP_history.iloc[self.lookback:].reset_index()
 
         # Reset: get the state (number of cases) from the predict function
-        predict(self.first_date, self.first_date, self.IP_history_file, "predictions/preds.csv")
-        pred_df = pd.read_csv("predictions/preds.csv",
+        predict(self.first_date, self.first_date, self.IP_history_file, "predictions/preds_temp.csv")
+        pred_df = pd.read_csv("predictions/preds_temp.csv",
                               parse_dates=['Date'],
                               encoding="ISO-8859-1",
                               error_bad_lines=True)
@@ -158,7 +190,7 @@ class CovidEnv(gym.Env):
         self.initial_state = self.state[0]
 
         # Randomly generate some costs
-        self.state[1:] = np.random.rand(len(IP_MAX_VALUES))
+        #self.state[1:] = np.random.rand(len(IP_MAX_VALUES))
 
         # Return the state
         return self.state

@@ -42,23 +42,23 @@ if not os.path.isfile(IP_FILE):
 
 
 # Create the environment and agent
-task = "covid-env-v0"
-env = gym.make(task, country=country, IP_history_file=IP_FILE)
+task = "covid-env-states-v0"
+env = gym.make(task, country=country, IP_history_file=IP_FILE, prescription_temp_file="prescription_temp_dqn.csv", prediction_temp_file="predictions/prediction_temp_dqn.csv")
 
 
 # Hyperparameters
-lr, epoch, batch_size = 1e-2, 1, 64
+lr, epoch, batch_size = 1e-2, 10, 64
 train_num, test_num = 1, 1
 gamma, n_step, target_freq = 0.9, 3, 320
 buffer_size = 20000
 eps_train, eps_test = 0.1, 0.05
-step_per_epoch, collect_per_step = 1, 1
-writer = SummaryWriter('dqn-agent-results/dqn0')
+step_per_epoch, collect_per_step = 24, 10
+writer = SummaryWriter('dqn-agent-results/dqn3')
 
 
 # Make environments
-train_envs = ts.env.DummyVectorEnv([lambda: gym.make(task, country=country, IP_history_file=IP_FILE) for _ in range(train_num)])
-test_envs = ts.env.DummyVectorEnv([lambda: gym.make(task, country=country, IP_history_file=IP_FILE) for _ in range(test_num)])
+train_envs = ts.env.DummyVectorEnv([lambda: gym.make(task, country=country, IP_history_file=IP_FILE, prescription_temp_file="prescription_temp_dqn.csv", prediction_temp_file="predictions/prediction_temp_dqn.csv") for _ in range(train_num)])
+test_envs = ts.env.DummyVectorEnv([lambda: gym.make(task, country=country, IP_history_file=IP_FILE, prescription_temp_file="prescription_temp_dqn.csv", prediction_temp_file="predictions/prediction_temp_dqn.csv") for _ in range(test_num)])
 train_envs.is_async = True
 test_envs.is_async = True
 
@@ -91,10 +91,6 @@ result = ts.trainer.offpolicy_trainer(
     #stop_fn=lambda mean_rewards: mean_rewards >= env.spec.reward_threshold,
     writer=writer)
 print(f'Finished training! Use {result["duration"]}')
-import pdb; pdb.set_trace()
-policy.eval()
-policy.set_eps(eps_test)
-collector = ts.data.Collector(policy, env)
-collector.collect(n_episode=1, render=1 / 35)
+
 
 env.close()

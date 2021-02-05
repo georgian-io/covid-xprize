@@ -12,10 +12,10 @@ from covid_xprize.examples.prescriptors.rl.agents import noisy_evaluation, cem, 
 
 
 # Modify these
-path_to_xprize = "/Users/mayaburhanpurkar/Documents/georgian-xprize/covid-xprize/"
+path_to_xprize = "/home/ubuntu/mburhanpurkar/covid-xprize/"
 country = "Canada"
 IP_FILE = path_to_xprize + "robojudge_test_scenario_" + country + ".csv"
-method = "cem"
+method = "random"
 
 
 # Generate data files if necessary
